@@ -39,6 +39,10 @@ export const endpoints: Record<string, EndpointDefinition> = {
         .describe(
           "取引区分: 1=通常, 2=返品, 3=取消, 4=預かり金, 5=預かり金返金, 6=回数券, 7=券売, 8=入金, 9=出金, 11=仮販売, 13=領収証発行, 14=取置き, 15=引取, 16=領収証",
         ),
+      cancel_division: z
+        .enum(["0", "1"])
+        .optional()
+        .describe("取消区分: 0=通常, 1=取消済み。純売上集計時は必ず0を指定すること"),
       "transaction_date_time-from": z
         .string()
         .optional()
