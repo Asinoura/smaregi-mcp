@@ -59,5 +59,21 @@ describe("validator", () => {
       const payments = validateParams("/payment_methods", { display_flag: "1" });
       expect(payments.success).toBe(true);
     });
+
+    it("数値を文字列に自動変換する（AIの型ミス救済）", () => {
+      // AIが transaction_head_division に数値 1 を渡すケース
+      const result = validateParams("/transactions", {
+        transaction_head_division: 1,
+      });
+      expect(result.success).toBe(true);
+    });
+
+    it("文字列を数値に自動変換する（AIの型ミス救済）", () => {
+      // AIが limit に文字列 "100" を渡すケース
+      const result = validateParams("/daily_summaries", {
+        limit: "50",
+      });
+      expect(result.success).toBe(true);
+    });
   });
 });
