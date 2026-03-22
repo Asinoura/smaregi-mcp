@@ -3,8 +3,9 @@ import { z } from "zod";
 import { smaregiRequest } from "../api/client.js";
 import { validateParams } from "../validation/validator.js";
 import { truncateResponse } from "../api/client.js";
-import { computeAggregation } from "../api/aggregation.js";
+import { computeAggregation, type AggregationOptions } from "../api/aggregation.js";
 import { sanitizeErrorMessage } from "../utils/sanitize.js";
+import { needsSplitting, fetchWithPeriodSplitting, computeCoveredMonths } from "../api/period-splitter.js";
 
 function normalizeParams(
   path: string,
@@ -73,6 +74,57 @@ export function registerExecuteTool(server: McpServer): void {
     }
 
     try {
+      const fromParam = params["transaction_date_time-from"] as string | undefined;
+      const toParam = params["transaction_date_time-to"] as string | undefined;
+
+      // 期間自動分割: /transactions GET で31日超えの場合
+      if (
+        args.path === "/transactions" &&
+        args.method === "GET" &&
+        fromParam && toParam &&
+        needsSplitting(fromParam, toParam)
+      ) {
+        const splitResult = await fetchWithPeriodSplitting(
+          args.path,
+          params,
+          smaregiRequest,
+        );
+
+        const aggOptions: AggregationOptions = {
+          coveredPeriod: splitResult.coveredPeriod,
+          coveredMonths: splitResult.coveredMonths,
+          apiCalls: splitResult.apiCalls,
+          monthlyBreakdown: splitResult.monthlyBreakdown,
+          isPartialResult: splitResult.failedChunks.length > 0,
+        };
+
+        const aggregation = computeAggregation(splitResult.data, aggOptions);
+
+        // 失敗チャンクがあれば note に追記
+        if (aggregation && splitResult.failedChunks.length > 0) {
+          const failedPeriods = splitResult.failedChunks
+            .map((c) => `${c.from} 〜 ${c.to}`)
+            .join(", ");
+          aggregation.note += ` 取得に失敗した期間: ${failedPeriods}`;
+        }
+
+        // サンプル5件のみ返す（トークン節約）
+        const samples = splitResult.data.slice(0, 5);
+
+        const response = {
+          _aggregation: aggregation,
+          samples,
+        };
+
+        return {
+          content: [{
+            type: "text" as const,
+            text: JSON.stringify(response, null, 2),
+          }],
+        };
+      }
+
+      // 通常フロー（31日以内 or 期間指定なし）
       const queryString =
         args.method === "GET" && params
           ? "?" +
@@ -94,7 +146,13 @@ export function registerExecuteTool(server: McpServer): void {
       });
 
       // 配列データの場合は集計メタデータを計算（truncate前に実行）
-      const aggregation = computeAggregation(data);
+      const aggOptions: AggregationOptions = {};
+      if (args.path === "/transactions" && fromParam && toParam) {
+        aggOptions.coveredPeriod = { from: fromParam, to: toParam };
+        aggOptions.coveredMonths = computeCoveredMonths(fromParam, toParam);
+        aggOptions.apiCalls = 1;
+      }
+      const aggregation = computeAggregation(data, aggOptions);
 
       const { text, truncated } = truncateResponse(data);
 

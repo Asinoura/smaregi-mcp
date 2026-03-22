@@ -11,6 +11,19 @@ export interface Aggregation {
   sums: Record<string, number>;
   excludedCancelledCount?: number;
   note: string;
+  covered_period?: string;
+  covered_months?: string[];
+  monthly_breakdown?: Record<string, { count: number } & Record<string, number>>;
+  api_calls?: number;
+  warning?: string;
+}
+
+export interface AggregationOptions {
+  isPartialResult?: boolean;
+  coveredPeriod?: { from: string; to: string };
+  coveredMonths?: string[];
+  apiCalls?: number;
+  monthlyBreakdown?: Record<string, { count: number } & Record<string, number>>;
 }
 
 // 集計対象の金額フィールド
@@ -53,13 +66,13 @@ const SUM_FIELD_PATTERNS = [
   "salesTargetMonthly",
 ];
 
-const SUM_FIELDS_SET = new Set(SUM_FIELD_PATTERNS);
+export const SUM_FIELDS_SET = new Set(SUM_FIELD_PATTERNS);
 
 /**
  * 取引データかどうか判定し、取消済みレコードを除外する。
  * cancelDivision フィールドが存在するレコードは取引データとみなす。
  */
-function filterCancelledTransactions(
+export function filterCancelledTransactions(
   data: Record<string, unknown>[],
 ): { filtered: Record<string, unknown>[]; cancelledCount: number } {
   const first = data[0];
@@ -88,8 +101,12 @@ function filterCancelledTransactions(
  */
 export function computeAggregation(
   data: unknown,
-  isPartialResult: boolean = false,
+  optionsOrPartial: boolean | AggregationOptions = false,
 ): Aggregation | null {
+  const options: AggregationOptions = typeof optionsOrPartial === "boolean"
+    ? { isPartialResult: optionsOrPartial }
+    : optionsOrPartial;
+  const isPartialResult = options.isPartialResult ?? false;
   if (!Array.isArray(data) || data.length === 0) {
     return null;
   }
@@ -168,7 +185,7 @@ export function computeAggregation(
     note = "この集計値はAPIレスポンス全件から計算済みです。AIが個別レコードを合算する必要はありません。";
   }
 
-  return {
+  const result: Aggregation = {
     totalRecords: data.length,
     ...(cancelledCount > 0 ? {
       filteredRecords: filtered.length,
@@ -177,4 +194,22 @@ export function computeAggregation(
     sums,
     note,
   };
+
+  if (options.coveredPeriod) {
+    result.covered_period = `${options.coveredPeriod.from} 〜 ${options.coveredPeriod.to}`;
+  }
+  if (options.coveredMonths) {
+    result.covered_months = options.coveredMonths;
+  }
+  if (options.monthlyBreakdown) {
+    result.monthly_breakdown = options.monthlyBreakdown;
+  }
+  if (options.apiCalls) {
+    result.api_calls = options.apiCalls;
+  }
+  if (options.coveredPeriod) {
+    result.warning = "この集計値に含まれるのは上記の期間のみです。この範囲外のデータは含まれていません。数値を引用する際は必ず対象期間を明示してください。推測や補完をしないでください。";
+  }
+
+  return result;
 }

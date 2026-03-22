@@ -132,4 +132,24 @@ describe("computeAggregation", () => {
     expect(result!.sums.total).toBe(targetTotal);
     expect(result!.sums.subtotal).toBe(targetSubtotal);
   });
+
+  it("AggregationOptions で covered_period と warning が付与される", () => {
+    const data = [{ total: "1000" }];
+    const result = computeAggregation(data, {
+      coveredPeriod: { from: "2025-01-01", to: "2025-01-31" },
+      coveredMonths: ["2025-01"],
+      apiCalls: 1,
+    });
+    expect(result!.covered_period).toBe("2025-01-01 〜 2025-01-31");
+    expect(result!.covered_months).toEqual(["2025-01"]);
+    expect(result!.api_calls).toBe(1);
+    expect(result!.warning).toContain("この集計値に含まれるのは上記の期間のみ");
+  });
+
+  it("boolean 引数の後方互換", () => {
+    const data = [{ total: "1000" }];
+    const result = computeAggregation(data, true);
+    expect(result!.note).toContain("取得分のみ");
+    expect(result!.warning).toBeUndefined();
+  });
 });
