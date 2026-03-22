@@ -16,9 +16,17 @@ export interface EnrichedMatch extends SearchMatch {
 // パスとドメインナレッジファイルの対応
 const PATH_TO_DOMAIN: Record<string, string[]> = {
   "/transactions": ["transactions.md", "common-patterns.md"],
+  "/transactions/{id}": ["transactions.md"],
+  "/transactions/{id}/details": ["transactions.md"],
   "/products": ["products.md"],
-  "/stores": [],
-  "/stock": ["common-patterns.md"],
+  "/stores": ["stores.md"],
+  "/stock": ["stock.md", "common-patterns.md"],
+  "/customers": ["customers.md"],
+  "/categories": ["categories.md"],
+  "/daily_summaries": ["daily-summaries.md", "common-patterns.md"],
+  "/payment_methods": ["payment-methods.md"],
+  "/adjustments": ["common-patterns.md"],
+  "/budget/{store_id}": ["common-patterns.md"],
 };
 
 function loadDomainFile(filename: string): string[] {

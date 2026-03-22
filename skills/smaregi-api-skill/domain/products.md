@@ -1,30 +1,97 @@
 # 商品マスタ (products)
 
-## 商品データの構造
+## 用途
+商品情報の取得・検索に使用。商品別売上分析、在庫管理、価格確認に必要。
 
-- `productId` — 商品ID（一意）
-- `productCode` — 商品コード（バーコードに対応）
-- `productName` — 商品名
-- `categoryId` — カテゴリID
-- `departmentId` — 部門ID
-- `price` — 販売価格（税抜）
-- `cost` — 原価
-- `taxDivision` — 税区分
+## 重要フィールド
 
-## カテゴリと部門
+| フィールド | 型 | 説明 |
+|-----------|-----|------|
+| productId | string | 商品ID（15桁以内、一意） |
+| productCode | string | 商品コード（バーコード対応、20文字以内） |
+| productName | string | 商品名（85文字以内） |
+| categoryId | string | 部門ID（9桁以内） |
+| price | string | 販売価格（税抜、8桁以内） |
+| customerPrice | string | 会員価格（8桁以内） |
+| cost | string | 原価（8桁・小数5桁） |
+| taxDivision | string | 税区分 |
+| displayFlag | string | 端末表示フラグ |
+| salesDivision | string | 売上区分 |
+| stockControlDivision | string | 在庫管理区分 |
+| division | string | 商品区分 |
+| groupCode | string | グループコード |
+| reduceTaxId | string | 軽減税率ID |
 
-- カテゴリ: 商品の分類（例: 飲料、食品）
-- 部門: 会計上の区分（例: フード、ドリンク）
-- ⚠️ カテゴリと部門は別の概念です。カテゴリは商品管理、部門は会計目的です
+## 税区分 (taxDivision)
 
-## 価格フィールド
+| 値 | 意味 |
+|----|------|
+| 0 | 内税（税込価格で登録） |
+| 1 | 外税（税抜価格で登録） |
+| 2 | 非課税 |
 
-- `price` — 税抜価格
-- ⚠️ 税込価格は取引データ (transactions) の明細から取得してください
-- `cost` — 原価（設定されている場合のみ）
+## 商品区分 (division)
 
-## 検索
+| 値 | 意味 |
+|----|------|
+| 0 | 通常商品 |
+| 1 | 回数券 |
+| 2 | オプション商品 |
 
-- `product_name` パラメータは部分一致で検索できます
-- `product_code` パラメータは完全一致です
-- ⚠️ 商品数が多い場合は `limit` と `offset` でページネーションしてください
+## 売上区分 (salesDivision)
+
+| 値 | 意味 |
+|----|------|
+| 0 | 売上対象 |
+| 1 | 売上対象外 |
+
+## 在庫管理区分 (stockControlDivision)
+
+| 値 | 意味 |
+|----|------|
+| 0 | 在庫管理する |
+| 1 | 在庫管理しない |
+
+## 検索パラメータ
+
+| パラメータ | 説明 | 注意 |
+|-----------|------|------|
+| category_id | 部門IDで絞り込み | 整数型 |
+| product_code | 商品コード | 完全一致 |
+| group_code | グループコード | 完全一致 |
+| display_flag | 端末表示 | 0=非表示, 1=表示 |
+| division | 商品区分 | 0=通常, 1=回数券, 2=オプション |
+| sales_division | 売上区分 | 0=対象, 1=対象外 |
+| stock_control_division | 在庫管理区分 | 0=する, 1=しない |
+| upd_date_time-from / -to | 更新日時範囲 | 最大31日間、ハイフン区切り |
+
+- ⚠️ 商品名での部分一致検索パラメータは公式APIに**存在しません**。商品名で検索したい場合は全件取得後にフィルタが必要です
+- ⚠️ `product_code` は完全一致検索です
+
+## 価格フィールドの注意
+
+- `price` — 税抜価格（taxDivision=0の場合は税込価格として登録されている）
+- `customerPrice` — 会員価格
+- ⚠️ 実際の販売価格（税込）は取引データ (transactions) の明細から取得してください
+- ⚠️ 店舗別価格は `/products/{productId}/prices` または `/stores/{storeId}/product_prices` で取得
+
+## 軽減税率 (reduceTaxId)
+
+| 値 | 意味 |
+|----|------|
+| null | 標準税率 |
+| 10000001 | 特定商品軽減税率 |
+| 10000002 | 選択（標準） |
+| 10000003 | 選択（軽減） |
+| 10000004 | 選択（選択） |
+
+## ページネーション
+
+- `limit` と `page` で制御（pageは1始まり）
+- ⚠️ 商品数が多い場合は必ずページネーションしてください
+
+## よくある間違い
+
+- ⚠️ 商品名で検索しようとしてパラメータエラーになる（API側に商品名検索パラメータがない）
+- ⚠️ price を税込価格と思い込む（taxDivision によって意味が変わる）
+- ⚠️ 全商品を一度に取得しようとしてタイムアウトする

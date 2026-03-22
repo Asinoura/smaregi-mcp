@@ -6,14 +6,15 @@ describe("validator", () => {
     it("正しいパラメータを受け入れる", () => {
       const result = validateParams("/transactions", {
         transaction_head_division: "1",
-        cancel_division: "0",
+        "transaction_date_time-from": "2024-01-01T00:00:00+09:00",
+        "transaction_date_time-to": "2024-01-31T23:59:59+09:00",
       });
       expect(result.success).toBe(true);
     });
 
-    it("不正な cancel_division を拒否する", () => {
+    it("不正な transaction_head_division を拒否する", () => {
       const result = validateParams("/transactions", {
-        cancel_division: "2",
+        transaction_head_division: "99",
       });
       expect(result.success).toBe(false);
       expect(result.error).toBeTruthy();
@@ -40,12 +41,23 @@ describe("validator", () => {
       expect(result.success).toBe(true);
     });
 
-    it("limit の範囲チェック", () => {
-      const valid = validateParams("/products", { limit: 100 });
+    it("daily_summaries の limit 上限チェック", () => {
+      const valid = validateParams("/daily_summaries", { limit: 100 });
       expect(valid.success).toBe(true);
 
-      const tooLarge = validateParams("/products", { limit: 9999 });
+      const tooLarge = validateParams("/daily_summaries", { limit: 101 });
       expect(tooLarge.success).toBe(false);
+    });
+
+    it("新エンドポイントが登録されている", () => {
+      const categories = validateParams("/categories", { level: "1" });
+      expect(categories.success).toBe(true);
+
+      const customers = validateParams("/customers", { customer_code: "C001" });
+      expect(customers.success).toBe(true);
+
+      const payments = validateParams("/payment_methods", { display_flag: "1" });
+      expect(payments.success).toBe(true);
     });
   });
 });

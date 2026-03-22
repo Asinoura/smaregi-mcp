@@ -40,4 +40,34 @@ describe("searchEndpoints", () => {
     const results = searchEndpoints("取引 売上 商品 在庫 店舗");
     expect(results.length).toBeLessThanOrEqual(5);
   });
+
+  it("「会員」で検索すると customers がマッチする", () => {
+    const results = searchEndpoints("会員");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.path === "/customers")).toBe(true);
+  });
+
+  it("「部門」で検索すると categories がマッチする", () => {
+    const results = searchEndpoints("部門");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.path === "/categories")).toBe(true);
+  });
+
+  it("「日次」で検索すると daily_summaries がマッチする", () => {
+    const results = searchEndpoints("日次");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.path === "/daily_summaries")).toBe(true);
+  });
+
+  it("「決済」で検索すると payment_methods がマッチする", () => {
+    const results = searchEndpoints("決済");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.path === "/payment_methods")).toBe(true);
+  });
+
+  it("「予算」で検索すると budget がマッチする", () => {
+    const results = searchEndpoints("予算");
+    expect(results.length).toBeGreaterThan(0);
+    expect(results.some((r) => r.path === "/budget/{store_id}")).toBe(true);
+  });
 });

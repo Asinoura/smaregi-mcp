@@ -3,6 +3,7 @@ import { z } from "zod";
 import { smaregiRequest } from "../api/client.js";
 import { validateParams } from "../validation/validator.js";
 import { truncateResponse } from "../api/client.js";
+import { computeAggregation } from "../api/aggregation.js";
 
 function normalizeParams(
   path: string,
@@ -91,12 +92,31 @@ export function registerExecuteTool(server: McpServer): void {
         body,
       });
 
+      // 配列データの場合は集計メタデータを計算（truncate前に実行）
+      const aggregation = computeAggregation(data);
+
       const { text, truncated } = truncateResponse(data);
+
+      // _aggregation + data の構造でレスポンスを組み立て
+      let responseText: string;
+      if (aggregation && aggregation.sums && Object.keys(aggregation.sums).length > 0) {
+        const response = {
+          _aggregation: aggregation,
+          data: JSON.parse(text),
+        };
+        responseText = JSON.stringify(response, null, 2);
+      } else {
+        responseText = text;
+      }
+
+      if (truncated) {
+        responseText = `⚠️ 結果が大きいため要約しました。\n\n${responseText}`;
+      }
 
       return {
         content: [{
           type: "text" as const,
-          text: truncated ? `⚠️ 結果が大きいため要約しました。\n\n${text}` : text,
+          text: responseText,
         }],
       };
     } catch (error) {
