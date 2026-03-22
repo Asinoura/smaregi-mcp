@@ -26,7 +26,7 @@ const PATH_TO_DOMAIN: Record<string, string[]> = {
   "/transactions": ["transactions.md", "common-patterns.md"],
   "/transactions/{id}": ["transactions.md"],
   "/transactions/{id}/details": ["transactions.md"],
-  "/products": ["products.md"],
+  "/products": ["products.md", "common-patterns.md"],
   "/stores": ["stores.md"],
   "/stock": ["stock.md", "common-patterns.md"],
   "/customers": ["customers.md"],
@@ -93,8 +93,26 @@ const ENDPOINT_TEMPLATES: Record<string, {
         },
         note: "在庫変動が発生した商品のみデータが存在する。stockControlDivision=1（在庫管理しない）の商品は含まれない。",
       },
+      "在庫不足商品を探す": {
+        description: "在庫が少ない物販商品を特定する",
+        required_params: {
+          "store_id": "(店舗IDを指定)",
+        },
+        note: "在庫データには施術メニュー（サービス商品）も含まれる。サービス商品は販売ごとにマイナスが増えるだけなので在庫不足ではない。在庫分析は物販商品のみに絞ること。商品マスタ（/products）の部門（categoryId）で物販商品を特定する。",
+      },
     },
-    aggregation_note: "_aggregationのsums.stockAmountが在庫総数。",
+    aggregation_note: "_aggregationのsums.stockAmountが在庫総数。ただし施術メニュー（サービス商品）のマイナス在庫も含まれるため、在庫分析は物販カテゴリのみを対象にすること。",
+  },
+  "/products": {
+    templates: {
+      "物販商品一覧": {
+        description: "在庫管理対象の物販商品を取得する",
+        required_params: {
+          "stock_control_division": "0",
+        },
+        note: "stock_control_division=0で在庫管理対象の商品に絞れる。ただしサービス商品でも在庫管理=0の場合があるため、部門（categoryId）でさらに絞り込むことを推奨。",
+      },
+    },
   },
 };
 
