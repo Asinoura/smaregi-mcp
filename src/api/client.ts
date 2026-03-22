@@ -1,5 +1,6 @@
 import { state } from "../state.js";
 import { ensureAuth, refreshAccessToken } from "../auth/oauth.js";
+import { sanitizeErrorMessage } from "../utils/sanitize.js";
 
 const API_BASE = process.env.SMAREGI_ENV === "production"
   ? "https://api.smaregi.jp"
@@ -30,7 +31,7 @@ export async function smaregiRequest(
 
     if (!res.ok) {
       const text = await res.text();
-      throw new Error(`API Error (${res.status}): ${text}`);
+      throw new Error(`API Error (${res.status}): ${sanitizeErrorMessage(text)}`);
     }
 
     return res.json();

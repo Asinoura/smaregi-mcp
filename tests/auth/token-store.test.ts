@@ -41,15 +41,17 @@ describe("token-store", () => {
     }
   });
 
-  it("saveTokens でトークンを保存できる", () => {
+  it("saveTokens は no-op（ディスクに書き込まない）", () => {
+    clearTokens();
     saveTokens(testTokens);
-    const data = JSON.parse(fs.readFileSync(tokensFile, "utf-8"));
-    expect(data.contractId).toBe("test-contract-123");
-    expect(data.accessToken).toBe("access-token-abc");
+    // saveTokens は v0.5 以降 no-op なのでファイルは作成されない
+    expect(loadTokens()).toBeNull();
   });
 
-  it("loadTokens で保存したトークンを読み込める", () => {
-    saveTokens(testTokens);
+  it("loadTokens は既存の tokens.json を読み込める", () => {
+    // 直接ファイルを書いてloadTokensで読めることを確認
+    fs.mkdirSync(path.dirname(tokensFile), { recursive: true });
+    fs.writeFileSync(tokensFile, JSON.stringify(testTokens), { mode: 0o600 });
     const loaded = loadTokens();
     expect(loaded).not.toBeNull();
     expect(loaded!.contractId).toBe(testTokens.contractId);

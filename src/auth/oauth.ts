@@ -1,5 +1,6 @@
 import { saveTokens } from "./token-store.js";
 import { state } from "../state.js";
+import { sanitizeErrorMessage } from "../utils/sanitize.js";
 
 const SCOPES = "pos.transactions:read pos.products:read pos.stores:read pos.stock:read";
 
@@ -41,7 +42,7 @@ export async function startAuthFlow(
 
   if (!res.ok) {
     const text = await res.text();
-    throw new Error(`トークン取得失敗 (${res.status}): ${text}`);
+    throw new Error(`トークン取得失敗 (${res.status}): ${sanitizeErrorMessage(text)}`);
   }
 
   const data = (await res.json()) as {
@@ -60,8 +61,6 @@ export async function startAuthFlow(
 
   saveTokens({
     contractId,
-    accessToken: tokens.accessToken,
-    refreshToken: tokens.refreshToken,
     expiresAt: tokens.expiresAt,
     scopes: SCOPES.split(" "),
   });

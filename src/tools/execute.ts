@@ -4,6 +4,7 @@ import { smaregiRequest } from "../api/client.js";
 import { validateParams } from "../validation/validator.js";
 import { truncateResponse } from "../api/client.js";
 import { computeAggregation } from "../api/aggregation.js";
+import { sanitizeErrorMessage } from "../utils/sanitize.js";
 
 function normalizeParams(
   path: string,
@@ -123,7 +124,7 @@ export function registerExecuteTool(server: McpServer): void {
       return {
         content: [{
           type: "text" as const,
-          text: `API実行エラー: ${error instanceof Error ? error.message : String(error)}`,
+          text: `API実行エラー: ${sanitizeErrorMessage(error instanceof Error ? error.message : String(error))}`,
         }],
         isError: true,
       };

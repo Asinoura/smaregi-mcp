@@ -3,6 +3,7 @@ import { z } from "zod";
 import { state } from "../state.js";
 import { startAuthFlow } from "../auth/oauth.js";
 import { loadTokens } from "../auth/token-store.js";
+import { sanitizeErrorMessage } from "../utils/sanitize.js";
 
 export function registerAuthTools(server: McpServer): void {
   server.registerTool("authenticate", {
@@ -39,7 +40,7 @@ export function registerAuthTools(server: McpServer): void {
       return {
         content: [{
           type: "text" as const,
-          text: `認証に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+          text: `認証に失敗しました: ${sanitizeErrorMessage(error instanceof Error ? error.message : String(error))}`,
         }],
         isError: true,
       };

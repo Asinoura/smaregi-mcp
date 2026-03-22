@@ -4,20 +4,21 @@ import * as os from "node:os";
 
 export interface StoredTokens {
   contractId: string;
-  accessToken: string;
-  refreshToken: string;
+  accessToken?: string;
+  refreshToken?: string;
   expiresAt: number;
   scopes: string[];
+  clientId?: string;
+  clientSecret?: string;
 }
 
-const CONFIG_DIR = path.join(os.homedir(), ".config", "smaregi-mcp");
-const TOKENS_FILE = path.join(CONFIG_DIR, "tokens.json");
+const TOKENS_FILE = path.join(os.homedir(), ".config", "smaregi-mcp", "tokens.json");
 
 export function saveTokens(tokens: StoredTokens): void {
-  fs.mkdirSync(CONFIG_DIR, { recursive: true });
-  fs.writeFileSync(TOKENS_FILE, JSON.stringify(tokens, null, 2), {
-    mode: 0o600,
-  });
+  // v0.5 以降はトークンやクライアントシークレットをディスクへ保存しない。
+  // 旧バージョンが残した tokens.json は loadTokens() で後方互換的に読める。
+  void tokens;
+  clearTokens();
 }
 
 export function loadTokens(): StoredTokens | null {

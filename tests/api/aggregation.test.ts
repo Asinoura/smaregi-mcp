@@ -110,9 +110,26 @@ describe("computeAggregation", () => {
     expect(partial!.note).toContain("取得分のみ");
   });
 
-  it("文字列の数値フィールドを正しく解釈する", () => {
-    const data = [{ total: "993740" }];
+  it("管理画面の純売上(税込)と一致する実データ相当のテスト", () => {
+    // 管理画面: リアルタイム売上 ¥1,022,890 / 70件
+    const targetTotal = 1022890;
+    const targetSubtotal = 929900;
+    const perTotal = Math.floor(targetTotal / 70);
+    const perSubtotal = Math.floor(targetSubtotal / 70);
+    const remainTotal = targetTotal - perTotal * 70;
+    const remainSubtotal = targetSubtotal - perSubtotal * 70;
+
+    const data = Array.from({ length: 70 }, (_, i) => ({
+      transactionHeadId: String(i + 1),
+      transactionHeadDivision: "1",
+      cancelDivision: "0",
+      total: String(perTotal + (i < remainTotal ? 1 : 0)),
+      subtotal: String(perSubtotal + (i < remainSubtotal ? 1 : 0)),
+    }));
+
     const result = computeAggregation(data);
-    expect(result!.sums.total).toBe(993740);
+    expect(result!.totalRecords).toBe(70);
+    expect(result!.sums.total).toBe(targetTotal);
+    expect(result!.sums.subtotal).toBe(targetSubtotal);
   });
 });
