@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>smaregi-mcp テストUI</title>
+<style>
+  :root {
+    --bg: #0f172a; --surface: #1e293b; --border: #334155;
+    --text: #e2e8f0; --muted: #94a3b8; --accent: #3b82f6;
+    --success: #22c55e; --error: #ef4444; --warn: #f59e0b;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    background: var(--bg); color: var(--text);
+    height: 100vh; display: flex; flex-direction: column;
+  }
+
+  /* Header */
+  header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 10px 20px; display: flex; align-items: center; gap: 12px;
+    flex-shrink: 0;
+  }
+  header h1 { font-size: 15px; font-weight: 600; }
+  .status-badge {
+    font-size: 11px; padding: 3px 10px; border-radius: 12px;
+    display: flex; align-items: center; gap: 4px;
+  }
+  .dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+  .status-connected .dot { background: var(--success); }
+  .status-disconnected .dot { background: var(--error); }
+  .status-connecting .dot { background: var(--warn); animation: pulse 1s infinite; }
+  @keyframes pulse { 50% { opacity: 0.4; } }
+
+  /* Body: 上部 = chat + raw、下部 = log */
+  .body-wrap {
+    flex: 1; display: flex; flex-direction: column; overflow: hidden;
+  }
+  .top-area {
+    flex: 1; display: grid; grid-template-columns: 1fr 1fr;
+    min-height: 0;
+  }
+
+  /* Chat panel (left) */
+  .chat-panel {
+    display: flex; flex-direction: column; border-right: 1px solid var(--border);
+    min-height: 0;
+  }
+  .messages {
+    flex: 1; overflow-y: auto; padding: 14px;
+    display: flex; flex-direction: column; gap: 10px;
+  }
+  .msg {
+    max-width: 92%; padding: 10px 14px; border-radius: 10px;
+    font-size: 13px; line-height: 1.6; word-break: break-word;
+    white-space: pre-wrap;
+  }
+  .msg-user { align-self: flex-end; background: var(--accent); color: white; }
+  .msg-bot { align-self: flex-start; background: var(--surface); border: 1px solid var(--border); }
+  .msg-error { align-self: flex-start; background: #1c1017; border: 1px solid var(--error); color: #fca5a5; }
+  .msg-meta {
+    font-size: 10px; color: var(--muted); margin-top: 6px;
+    font-family: 'SF Mono', monospace; opacity: 0.8;
+  }
+  .msg-loading {
+    align-self: flex-start; color: var(--muted); font-size: 13px;
+    animation: pulse 1s infinite;
+  }
+
+  /* Raw response panel (right) */
+  .raw-panel {
+    display: flex; flex-direction: column; min-height: 0;
+  }
+  .raw-header {
+    background: var(--surface); border-bottom: 1px solid var(--border);
+    padding: 8px 14px; font-size: 11px; color: var(--muted);
+    display: flex; align-items: center; gap: 8px; flex-shrink: 0;
+  }
+  .raw-header .label { font-weight: 600; color: var(--text); }
+  .raw-body {
+    flex: 1; overflow-y: auto; padding: 12px;
+    font-family: 'SF Mono', 'Fira Code', monospace;
+    font-size: 11px; line-height: 1.5; white-space: pre-wrap;
+    color: var(--muted);
+  }
+
+  /* Log bar (bottom) */
+  .log-bar {
+    border-top: 1px solid var(--border); background: var(--surface);
+    height: 100px; display: flex; flex-direction: column; flex-shrink: 0;
+  }
+  .log-header {
+    padding: 4px 14px; font-size: 10px; font-weight: 600; color: var(--muted);
+    border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 6px;
+  }
+  .log-body {
+    flex: 1; overflow-y: auto; padding: 4px 14px;
+    font-family: 'SF Mono', monospace; font-size: 10px; line-height: 1.6;
+  }
+  .log-entry { color: var(--muted); }
+  .log-entry .t { color: #64748b; }
+  .log-entry .tool { color: var(--accent); }
+  .log-entry .ok { color: var(--success); }
+  .log-entry .err { color: var(--error); }
+
+  /* Quick prompts + input */
+  .quick-prompts {
+    padding: 6px 14px; border-top: 1px solid var(--border);
+    display: flex; gap: 5px; flex-wrap: wrap; flex-shrink: 0;
+  }
+  .qbtn {
+    background: var(--surface); border: 1px solid var(--border);
+    color: var(--muted); padding: 3px 9px; border-radius: 12px;
+    font-size: 11px; cursor: pointer; white-space: nowrap;
+  }
+  .qbtn:hover { border-color: var(--accent); color: var(--text); }
+  .input-area {
+    padding: 8px 14px; display: flex; gap: 8px; flex-shrink: 0;
+    border-top: 1px solid var(--border);
+  }
+  .input-area input {
+    flex: 1; background: var(--surface); border: 1px solid var(--border);
+    color: var(--text); padding: 9px 12px; border-radius: 8px;
+    font-size: 13px; outline: none;
+  }
+  .input-area input:focus { border-color: var(--accent); }
+  .input-area button {
+    background: var(--accent); color: white; border: none;
+    padding: 9px 18px; border-radius: 8px; cursor: pointer;
+    font-size: 13px; font-weight: 500;
+  }
+  .input-area button:disabled { opacity: 0.4; cursor: default; }
+</style>
+</head>
+<body>
+
+<header>
+  <h1>smaregi-mcp テストUI</h1>
+  <div id="status" class="status-badge status-connecting">
+    <span class="dot"></span>
+    <span id="statusText">接続中...</span>
+  </div>
+  <div style="margin-left:auto; font-size:11px; color:var(--muted)">
+    全て実API呼び出し &middot; fujioka fork
+  </div>
+</header>
+
+<div class="body-wrap">
+  <div class="top-area">
+    <!-- Left: Chat -->
+    <div class="chat-panel">
+      <div class="messages" id="messages">
+        <div class="msg msg-bot">smaregi-mcp テストUIへようこそ。
+クイックプロンプトか自由入力で試してください。
+全ての応答は実際のスマレジAPIから取得します。</div>
+      </div>
+    </div>
+
+    <!-- Right: Raw response -->
+    <div class="raw-panel">
+      <div class="raw-header">
+        <span class="label">APIレスポンス</span>
+        <span id="rawMeta"></span>
+      </div>
+      <div class="raw-body" id="rawBody">(チャットでコマンドを送信すると、ここに生のAPIレスポンスが表示されます)</div>
+    </div>
+  </div>
+
+  <!-- Bottom: Log -->
+  <div class="log-bar">
+    <div class="log-header">ツール実行ログ</div>
+    <div class="log-body" id="logBody"></div>
+  </div>
+</div>
+
+<!-- Quick prompts -->
+<div class="quick-prompts">
+  <button class="qbtn" onclick="send('店舗一覧を取得して')">店舗一覧</button>
+  <button class="qbtn" onclick="send('商品一覧を見せて')">商品一覧</button>
+  <button class="qbtn" onclick="send('今日の取引を見たい')">今日の取引</button>
+  <button class="qbtn" onclick="send('今月の売上を見せて')">今月の売上</button>
+  <button class="qbtn" onclick="send('カテゴリ一覧を見せて')">カテゴリ</button>
+  <button class="qbtn" onclick="send('スタッフ一覧を見せて')">スタッフ</button>
+  <button class="qbtn" onclick="send('在庫を確認して')">在庫</button>
+  <button class="qbtn" onclick="send('会員一覧を見せて')">会員</button>
+  <button class="qbtn" onclick="send('認証状態を確認して')">認証状態</button>
+  <button class="qbtn" onclick="send('利用可能なAPIパスを表示して')">APIパス一覧</button>
+</div>
+
+<!-- Input -->
+<div class="input-area">
+  <input id="input" type="text" placeholder="例: 店舗一覧を取得して / 今日の売上を見たい"
+         onkeydown="if(event.key==='Enter'&&!event.isComposing)send()">
+  <button id="btn" onclick="send()">送信</button>
+</div>
+
+<script>
+const msgsEl = document.getElementById("messages");
+const rawEl = document.getElementById("rawBody");
+const rawMetaEl = document.getElementById("rawMeta");
+const logEl = document.getElementById("logBody");
+const inputEl = document.getElementById("input");
+const btnEl = document.getElementById("btn");
+
+// --- Helpers ---
+function esc(s) { return s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;"); }
+function time() { return new Date().toLocaleTimeString("ja-JP"); }
+
+function addMsg(html, cls, meta) {
+  const el = document.createElement("div");
+  el.className = `msg ${cls}`;
+  el.innerHTML = html;
+  if (meta) {
+    const m = document.createElement("div");
+    m.className = "msg-meta";
+    m.textContent = meta;
+    el.appendChild(m);
+  }
+  msgsEl.appendChild(el);
+  msgsEl.scrollTop = msgsEl.scrollHeight;
+  return el;
+}
+
+function addLog(text, cls) {
+  const e = document.createElement("div");
+  e.className = "log-entry";
+  e.innerHTML = `<span class="t">[${time()}]</span> <span class="${cls || ''}">${esc(text)}</span>`;
+  logEl.appendChild(e);
+  logEl.scrollTop = logEl.scrollHeight;
+}
+
+// --- Status ---
+async function checkStatus() {
+  try {
+    const r = await fetch("/api/status");
+    const d = await r.json();
+    const el = document.getElementById("status");
+    const txt = document.getElementById("statusText");
+    if (d.connected) {
+      el.className = "status-badge status-connected";
+      txt.textContent = `MCP接続中 (PID: ${d.pid})`;
+    } else {
+      el.className = "status-badge status-disconnected";
+      txt.textContent = "未接続（初回リクエストで自動接続）";
+    }
+  } catch {
+    document.getElementById("status").className = "status-badge status-disconnected";
+    document.getElementById("statusText").textContent = "サーバー停止";
+  }
+}
+
+// --- Send ---
+async function send(text) {
+  if (!text) {
+    text = inputEl.value.trim();
+    if (!text) return;
+  }
+  inputEl.value = "";
+  addMsg(esc(text), "msg-user");
+  btnEl.disabled = true;
+
+  const loadEl = addMsg("実行中...", "msg-loading");
+  addLog(`送信: ${text}`, "");
+
+  try {
+    const r = await fetch("/api/chat", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ message: text }),
+    });
+    const d = await r.json();
+    loadEl.remove();
+
+    if (d.error) {
+      addMsg(esc(d.error), "msg-error");
+      addLog(`ERROR: ${d.error}`, "err");
+      return;
+    }
+
+    // チャット返答（実データ整形済み）
+    const metaStr = d.tool ? `${d.tool} ${JSON.stringify(d.args)}` : null;
+    addMsg(esc(d.reply), d.isError ? "msg-error" : "msg-bot", metaStr);
+
+    // ログ
+    if (d.tool) {
+      addLog(`${d.tool} → ${d.isError ? "ERROR" : "OK"} [${d.intent}]`, d.isError ? "err" : "ok");
+    }
+
+    // 右パネルに生レスポンス表示
+    if (d.raw) {
+      let display = d.raw;
+      try { display = JSON.stringify(JSON.parse(d.raw), null, 2); } catch {}
+      rawEl.textContent = display;
+      rawMetaEl.textContent = d.tool ? `${d.tool} | ${d.intent} | ${time()}` : "";
+    }
+
+    checkStatus();
+  } catch (e) {
+    loadEl.remove();
+    addMsg(`通信エラー: ${esc(e.message)}`, "msg-error");
+    addLog(`通信エラー: ${e.message}`, "err");
+  } finally {
+    btnEl.disabled = false;
+    inputEl.focus();
+  }
+}
+
+// Init
+checkStatus();
+setInterval(checkStatus, 10000);
+inputEl.focus();
+</script>
+</body>
+</html>
