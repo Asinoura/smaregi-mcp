@@ -70,7 +70,7 @@ Claude Code の会話で:
 スマレジの認証設定をして
 ```
 
-契約 ID・クライアント ID・クライアントシークレットを入力すると `~/.config/smaregi-mcp/config.json` に保存されます。
+契約 ID・クライアント ID・クライアントシークレットを入力すると `~/.config/smaregi-mcp/config.json` に保存されます。設定ディレクトリは `0700`、設定・トークンファイルは `0600` に自動矯正されます。
 
 ### 5. 動作確認
 
@@ -81,7 +81,7 @@ Claude Code の会話で:
 ### ソースからビルドする場合
 
 ```bash
-git clone https://github.com/fujioka0729/smaregi-mcp.git
+git clone https://github.com/Asinoura/smaregi-mcp.git
 cd smaregi-mcp
 npm install
 npm run build
@@ -100,6 +100,28 @@ npm run build
 | `smaregi_configure` | 認証情報設定 |
 | `smaregi_auth_status` | 認証状態確認 |
 | `smaregi_server_info` | サーバー情報表示 |
+
+## セキュリティ
+
+- GETは既定で利用できますが、POST/PUT/PATCH/DELETEは既定で無効です。
+- 変更系APIを使う場合だけ、MCPサーバーの環境変数へ `SMAREGI_ENABLE_MUTATIONS=true` を設定してください。
+- 変更系ツールはさらに `confirm: true` が必須です。実行前に対象・件数・変更内容を確認してください。
+- 必要最小限のスマレジScopeだけを付与し、本番用と検証用の認証情報を分けてください。
+- 認証情報やトークン値は会話・ログ・Issueへ貼り付けないでください。
+
+```json
+{
+  "mcpServers": {
+    "smaregi": {
+      "command": "npx",
+      "args": ["smaregi-mcp"],
+      "env": {
+        "SMAREGI_ENABLE_MUTATIONS": "true"
+      }
+    }
+  }
+}
+```
 
 ## Skills 構成
 

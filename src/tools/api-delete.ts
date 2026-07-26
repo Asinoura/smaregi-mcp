@@ -2,6 +2,7 @@ import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { loadConfig } from "../config/config.js";
 import { apiRequest } from "../api/client.js";
+import { assertMutationsEnabled } from "./mutation-guard.js";
 
 export function register(server: McpServer): void {
   server.tool(
@@ -9,10 +10,12 @@ export function register(server: McpServer): void {
     "スマレジAPIにDELETEリクエストを送信します",
     {
       path: z.string().describe("APIパス（例: /products/{productId}）"),
-      query: z.record(z.string()).optional().describe("クエリパラメータ"),
+      query: z.record(z.string(), z.string()).optional().describe("クエリパラメータ"),
+      confirm: z.literal(true).describe("削除内容を確認した場合のみ true"),
     },
-    async ({ path, query }) => {
+    async ({ path, query, confirm }) => {
       try {
+        assertMutationsEnabled(confirm);
         const config = await loadConfig();
         const result = await apiRequest(config, "DELETE", path, query);
         return {

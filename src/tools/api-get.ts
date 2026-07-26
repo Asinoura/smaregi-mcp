@@ -9,7 +9,7 @@ export function register(server: McpServer): void {
     "スマレジAPIにGETリクエストを送信します",
     {
       path: z.string().describe("APIパス（例: /products）"),
-      query: z.record(z.string()).optional().describe("クエリパラメータ"),
+      query: z.record(z.string(), z.string()).optional().describe("クエリパラメータ"),
     },
     async ({ path, query }) => {
       try {

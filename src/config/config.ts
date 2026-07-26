@@ -36,7 +36,12 @@ export async function loadConfig(): Promise<Config> {
 /** 設定ファイルを保存 */
 export async function saveConfig(config: Config): Promise<void> {
   const dir = getConfigDir();
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
+  await fs.chmod(dir, 0o700);
   const configPath = path.join(dir, "config.json");
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+  await fs.writeFile(configPath, JSON.stringify(config, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
+  await fs.chmod(configPath, 0o600);
 }
