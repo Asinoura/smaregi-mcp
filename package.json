@@ -35,5 +35,8 @@
     "@types/node": "^22.15.3",
     "esbuild": "^0.28.1",
     "typescript": "^5.8.3"
+  },
+  "overrides": {
+    "@hono/node-server": "2.0.10"
   }
 }
