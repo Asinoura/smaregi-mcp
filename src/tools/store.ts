@@ -2,6 +2,7 @@ import type { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { state } from "../state.js";
 import { smaregiRequest } from "../api/client.js";
+import { sanitizeErrorMessage } from "../utils/sanitize.js";
 
 export function registerStoreTools(server: McpServer): void {
   server.registerTool("set_store", {
@@ -35,7 +36,7 @@ export function registerStoreTools(server: McpServer): void {
       return {
         content: [{
           type: "text" as const,
-          text: `店舗一覧の取得に失敗しました: ${error instanceof Error ? error.message : String(error)}`,
+          text: `店舗一覧の取得に失敗しました: ${sanitizeErrorMessage(error instanceof Error ? error.message : String(error))}`,
         }],
         isError: true,
       };

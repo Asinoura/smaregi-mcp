@@ -8,13 +8,14 @@
 - **ドメイン知識の自動注入** — `search_tools` で検索すると、API の注意事項（cancelDivision の罠など）が自動的に返される
 - **構造的バリデーション** — Zod スキーマでパラメータを検証し、不正な値やtypoを防止
 - **レスポンス制御** — 大きすぎるレスポンスは自動的に要約
+- **SDK統合** — OAuth、トークン更新、再試行、レート制御、HTTP通信は `@asinoura/pfapi-sdk` に集約
 
 ## ツール一覧
 
 | ツール | 説明 |
 |--------|------|
-| `authenticate` | client_credentials でアクセストークンを取得 |
-| `auth_status` | 認証状態（トークン有効期限）を確認 |
+| `authenticate` | client_credentials でSDKを初期化し、接続を検証 |
+| `auth_status` | SDKの認証状態を確認 |
 | `set_store` | 操作対象の店舗IDを設定 |
 | `list_stores` | 契約内の店舗一覧を取得 |
 | `search_tools` | キーワードでAPIエンドポイントを検索（ドメイン知識付き） |
@@ -47,10 +48,11 @@ pnpm build
 | 変数 | 説明 | デフォルト |
 |------|------|-----------|
 | `SMAREGI_ENV` | `production` で本番API（smaregi.jp）を使用 | 開発（smaregi.dev） |
+| `SMAREGI_SCOPE` | OAuthスコープを空白区切りで上書き | POS読取用スコープ |
 
 ## 使い方
 
-1. `authenticate` でスマレジAPIに認証（client_id, client_secret, contract_id が必要）
+1. `authenticate` でスマレジSDKを初期化（client_id, client_secret, contract_id が必要）
 2. `search_tools` で使いたいAPIを検索（例: 「売上」）
 3. ドメイン知識を確認してから `execute` でAPIを実行
 
@@ -76,3 +78,5 @@ pnpm test        # テスト実行
 pnpm test:watch  # テスト監視モード
 pnpm build       # ビルド
 ```
+
+アクセストークンやクライアントシークレットはファイルへ保存しません。トークンのキャッシュと更新はSDKのプロセスメモリ内で管理されます。

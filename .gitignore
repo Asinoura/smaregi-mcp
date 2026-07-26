@@ -13,6 +13,7 @@ logs/
 # OS・エディタ
 .DS_Store
 .vscode/
+.claude/
 *.swp
 
 # 依存
