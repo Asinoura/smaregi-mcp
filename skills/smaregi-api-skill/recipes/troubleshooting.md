@@ -12,15 +12,15 @@
 
 **原因と対処**:
 1. トークンの有効期限切れ → `smaregi_auth_status` で確認し、再認証
-2. トークンが設定されていない → `smaregi_configure` で認証情報を設定
-3. クライアントID/シークレットが不正 → 管理画面で確認
+2. トークンが設定されていない → `smaregi_configure` で契約ID・クライアントIDを設定
+3. `SMAREGI_CLIENT_SECRET` が未設定または不正 → MCPサーバーの起動環境と管理画面で確認
 
 ```
 // 認証状態を確認
 smaregi_auth_status()
 
 // 再設定
-smaregi_configure({ "contract_id": "xxx", "client_id": "yyy", "client_secret": "zzz" })
+smaregi_configure({ "contract_id": "xxx", "client_id": "yyy" })
 ```
 
 ### 403 Forbidden - 権限不足

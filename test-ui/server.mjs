@@ -11,6 +11,27 @@ import { spawn } from "child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
 const PORT = 3456;
+const HOST = "127.0.0.1";
+const MAX_BODY_BYTES = 64 * 1024;
+
+async function readJsonBody(req) {
+  let body = "";
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > MAX_BODY_BYTES) {
+      throw new Error("リクエストが大きすぎます");
+    }
+    body += chunk;
+  }
+  return JSON.parse(body);
+}
+
+function isAllowedOrigin(req) {
+  const origin = req.headers.origin;
+  if (!origin) return true;
+  return origin === `http://${HOST}:${PORT}` || origin === `http://localhost:${PORT}`;
+}
 
 // ---------- JST日付ユーティリティ ----------
 
@@ -319,9 +340,15 @@ const mcpServerPath = join(__dirname, "..", "bin", "smaregi-mcp.js");
 const mcp = new McpClient(mcpServerPath);
 
 const server = createServer(async (req, res) => {
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  res.setHeader("Cache-Control", "no-store");
+  res.setHeader("X-Content-Type-Options", "nosniff");
+  res.setHeader("X-Frame-Options", "DENY");
+  res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'");
+  if (!isAllowedOrigin(req)) {
+    res.writeHead(403, { "Content-Type": "application/json" });
+    res.end(JSON.stringify({ error: "許可されていない送信元です" }));
+    return;
+  }
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
   // Static
@@ -349,10 +376,13 @@ const server = createServer(async (req, res) => {
 
   // ツール直接呼び出し
   if (req.method === "POST" && req.url === "/api/call") {
-    let body = "";
-    for await (const chunk of req) body += chunk;
     try {
-      const { tool, args } = JSON.parse(body);
+      const { tool, args } = await readJsonBody(req);
+      if (typeof tool !== "string" || !tool.startsWith("smaregi_")) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "ツール名が不正です" }));
+        return;
+      }
       const result = await mcp.callTool(tool, args);
       res.writeHead(200, { "Content-Type": "application/json" });
       res.end(JSON.stringify(result));
@@ -365,10 +395,13 @@ const server = createServer(async (req, res) => {
 
   // チャット: 自然言語 → 実MCPツール呼び出し → 整形して返答
   if (req.method === "POST" && req.url === "/api/chat") {
-    let body = "";
-    for await (const chunk of req) body += chunk;
     try {
-      const { message } = JSON.parse(body);
+      const { message } = await readJsonBody(req);
+      if (typeof message !== "string" || message.length === 0 || message.length > 4_000) {
+        res.writeHead(400, { "Content-Type": "application/json" });
+        res.end(JSON.stringify({ error: "メッセージが不正です" }));
+        return;
+      }
       const parsed = parseIntent(message);
 
       if (!parsed) {
@@ -422,8 +455,8 @@ const server = createServer(async (req, res) => {
 
 process.on("SIGINT", () => { mcp.stop(); process.exit(0); });
 
-server.listen(PORT, () => {
-  console.log(`smaregi-mcp テストUI: http://localhost:${PORT}`);
+server.listen(PORT, HOST, () => {
+  console.log(`smaregi-mcp テストUI: http://${HOST}:${PORT}`);
   console.log(`MCPサーバー: ${mcpServerPath}`);
   console.log("Ctrl+C で終了");
 });

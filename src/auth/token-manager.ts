@@ -13,7 +13,7 @@ function isTokenValid(token: Token): boolean {
 async function fetchNewToken(config: Config): Promise<Token> {
   if (!config.clientId || !config.clientSecret) {
     throw new Error(
-      "clientId と clientSecret が設定されていません。smaregi_configure ツールで設定してください。"
+      "clientId または clientSecret が未設定です。clientId は smaregi_configure、clientSecret は SMAREGI_CLIENT_SECRET 環境変数で設定してください。"
     );
   }
 
