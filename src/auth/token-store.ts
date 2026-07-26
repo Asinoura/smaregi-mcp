@@ -17,7 +17,10 @@ export async function loadToken(): Promise<Token | null> {
 /** トークンを保存 */
 export async function saveToken(token: Token): Promise<void> {
   const dir = getConfigDir();
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   const tokenPath = path.join(dir, "tokens.json");
-  await fs.writeFile(tokenPath, JSON.stringify(token, null, 2), "utf-8");
+  await fs.writeFile(tokenPath, JSON.stringify(token, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 }

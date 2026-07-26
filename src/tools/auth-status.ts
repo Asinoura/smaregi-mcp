@@ -26,7 +26,7 @@ export function register(server: McpServer): void {
           const expiresAt = new Date(token.obtained_at + token.expires_in * 1000);
           const isValid = Date.now() < expiresAt.getTime();
           lines.push(
-            `トークン: ${token.access_token.slice(0, 10)}...`,
+            "トークン: 取得済み（値は非表示）",
             `有効期限: ${expiresAt.toISOString()}`,
             `状態: ${isValid ? "有効" : "期限切れ"}`
           );

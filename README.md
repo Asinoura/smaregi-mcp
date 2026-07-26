@@ -64,13 +64,19 @@ npx smaregi-mcp setup-skills
 
 ### 4. 認証設定
 
+クライアントシークレットはファイルへ保存せず、MCPサーバーを起動する環境で設定します。
+
+```bash
+export SMAREGI_CLIENT_SECRET="..."
+```
+
 Claude Code の会話で:
 
 ```
 スマレジの認証設定をして
 ```
 
-契約 ID・クライアント ID・クライアントシークレットを入力すると `~/.config/smaregi-mcp/config.json` に保存されます。
+契約 ID・クライアント IDを入力すると、公開情報だけが `~/.config/smaregi-mcp/config.json` に権限 `0600` で保存されます。アクセストークンのキャッシュも `0600` で保存され、値や断片は状態表示へ出しません。
 
 ### 5. 動作確認
 
@@ -97,7 +103,7 @@ npm run build
 | `smaregi_api_delete` | DELETE リクエスト（データ削除） |
 | `smaregi_api_patch` | PATCH リクエスト（部分更新） |
 | `smaregi_api_list_paths` | 利用可能なエンドポイント一覧 |
-| `smaregi_configure` | 認証情報設定 |
+| `smaregi_configure` | 契約ID・クライアントID設定（シークレットは環境変数のみ） |
 | `smaregi_auth_status` | 認証状態確認 |
 | `smaregi_server_info` | サーバー情報表示 |
 

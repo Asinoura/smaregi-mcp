@@ -19,8 +19,9 @@ smaregi-mcp（MCPサーバー）を通じてスマレジの全APIと連携。
 
 ### 認証設定
 
-`smaregi_configure` ツールで契約ID・クライアントID・クライアントシークレットを設定。
-環境変数（`SMAREGI_CONTRACT_ID`, `SMAREGI_CLIENT_ID`, `SMAREGI_CLIENT_SECRET`）でも設定可能。
+`smaregi_configure` ツールで契約ID・クライアントIDを設定。
+クライアントシークレットはディスクへ保存せず、`SMAREGI_CLIENT_SECRET` 環境変数で設定する。
+契約ID・クライアントIDも `SMAREGI_CONTRACT_ID`, `SMAREGI_CLIENT_ID` 環境変数で設定可能。
 
 ### 確認
 

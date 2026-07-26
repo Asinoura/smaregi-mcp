@@ -24,7 +24,8 @@ export async function loadConfig(): Promise<Config> {
   const merged = {
     contractId: fileConfig.contractId ?? process.env.SMAREGI_CONTRACT_ID ?? "",
     clientId: fileConfig.clientId ?? process.env.SMAREGI_CLIENT_ID,
-    clientSecret: fileConfig.clientSecret ?? process.env.SMAREGI_CLIENT_SECRET,
+    // クライアントシークレットはディスクから読まず、環境変数だけを信頼する。
+    clientSecret: process.env.SMAREGI_CLIENT_SECRET,
     idpHost: fileConfig.idpHost ?? process.env.SMAREGI_IDP_HOST,
     apiHost: fileConfig.apiHost ?? process.env.SMAREGI_API_HOST,
     scopes: fileConfig.scopes,
@@ -36,7 +37,11 @@ export async function loadConfig(): Promise<Config> {
 /** 設定ファイルを保存 */
 export async function saveConfig(config: Config): Promise<void> {
   const dir = getConfigDir();
-  await fs.mkdir(dir, { recursive: true });
+  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   const configPath = path.join(dir, "config.json");
-  await fs.writeFile(configPath, JSON.stringify(config, null, 2), "utf-8");
+  const { clientSecret: _clientSecret, ...safeConfig } = config;
+  await fs.writeFile(configPath, JSON.stringify(safeConfig, null, 2), {
+    encoding: "utf-8",
+    mode: 0o600,
+  });
 }
