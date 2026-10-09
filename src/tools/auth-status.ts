@@ -22,7 +22,13 @@ export function register(server: McpServer): void {
           "--- トークン情報 ---",
         ];
 
-        if (token && token.cache_key !== tokenCacheKey(config)) {
+        if (token && token.cache_key === undefined) {
+          // 以前の版は取得時の設定を記録していないので、同じ設定で取ったかどうかは分からない
+          lines.push(
+            "トークン: 未取得（今の設定で取得したものはありません）",
+            "保存済みのトークンは以前の版で取得したもので、どの設定で取得したか確かめられないので使いません。次のAPI呼び出しで取り直します。"
+          );
+        } else if (token && token.cache_key !== tokenCacheKey(config)) {
           lines.push(
             "トークン: 未取得（今の設定で取得したものはありません）",
             "保存済みのトークンは別の設定（契約ID・クライアントID・ホスト・スコープ）で取得したものなので使いません。次のAPI呼び出しで取り直します。"

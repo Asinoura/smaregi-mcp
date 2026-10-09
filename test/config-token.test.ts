@@ -185,6 +185,12 @@ test("どの設定で取ったか分からない保存済みトークンは使�
     { mode: 0o600 }
   );
 
+  // 同じ設定で取ったかもしれないので「別の設定」とは言い切らず、以前の版のトークンとして案内する
+  const text = await statusText();
+  assert.doesNotMatch(text, /状態: 有効/);
+  assert.doesNotMatch(text, /別の設定/);
+  assert.match(text, /以前の版/);
+
   assert.match(await currentToken(), /^TOKEN_FOR_contractA_/);
   assert.equal(tokenRequests.length, 1);
 });
