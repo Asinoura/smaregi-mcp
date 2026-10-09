@@ -176,6 +176,22 @@ test("config.json のスコープを変えたら、前のトークンを使わ�
   assert.equal(tokenRequests.length, 2);
 });
 
+test("config.json のスコープの順番を入れ替えただけなら、トークンを取り直さない", async () => {
+  await configure({ contract_id: "contractA", client_id: "clientA" });
+  const token = await currentToken();
+  assert.equal(tokenRequests.length, 1);
+
+  // 同じスコープを逆の順番で書く。キャッシュのキーはスコープを並べ替えてから作るので、同じ設定として扱う
+  const reversed = [...(await loadConfig()).scopes].reverse();
+  const configPath = path.join(home, ".config", "smaregi-mcp", "config.json");
+  const saved = (await readConfigFile()) as Record<string, unknown>;
+  await fs.writeFile(configPath, JSON.stringify({ ...saved, scopes: reversed }));
+  assert.deepEqual((await loadConfig()).scopes, reversed);
+
+  assert.equal(await currentToken(), token);
+  assert.equal(tokenRequests.length, 1);
+});
+
 test("どの設定で取ったか分からない保存済みトークンは使わない", async () => {
   await configure({ contract_id: "contractA", client_id: "clientA" });
   const dir = path.join(home, ".config", "smaregi-mcp");
