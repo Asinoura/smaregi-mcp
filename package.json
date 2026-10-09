@@ -25,7 +25,8 @@
   "license": "MIT",
   "scripts": {
     "build": "npx esbuild ./src/index.ts --bundle --platform=node --format=esm --outfile=./bin/smaregi-mcp.js --minify && echo '#!/usr/bin/env node' | cat - ./bin/smaregi-mcp.js > /tmp/smaregi-mcp-tmp.js && mv /tmp/smaregi-mcp-tmp.js ./bin/smaregi-mcp.js && chmod +x ./bin/smaregi-mcp.js",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test": "rm -rf .test-dist && npx esbuild ./test/*.test.ts --bundle --platform=node --format=esm --outdir=./.test-dist --out-extension:.js=.mjs --log-level=warning && node --test ./.test-dist/*.test.mjs"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.1",

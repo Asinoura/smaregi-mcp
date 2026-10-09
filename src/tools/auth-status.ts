@@ -1,6 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { loadConfig } from "../config/config.js";
-import { loadToken } from "../auth/token-store.js";
+import { loadToken, tokenCacheKey } from "../auth/token-store.js";
 
 export function register(server: McpServer): void {
   server.tool(
@@ -22,7 +22,12 @@ export function register(server: McpServer): void {
           "--- トークン情報 ---",
         ];
 
-        if (token) {
+        if (token && token.cache_key !== tokenCacheKey(config)) {
+          lines.push(
+            "トークン: 未取得（今の設定で取得したものはありません）",
+            "保存済みのトークンは別の設定（契約ID・クライアントID・ホスト・スコープ）で取得したものなので使いません。次のAPI呼び出しで取り直します。"
+          );
+        } else if (token) {
           const expiresAt = new Date(token.obtained_at + token.expires_in * 1000);
           const isValid = Date.now() < expiresAt.getTime();
           lines.push(
