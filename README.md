@@ -78,7 +78,7 @@ Claude Code の会話で:
 
 契約 ID・クライアント IDを入力すると、公開情報だけが `~/.config/smaregi-mcp/config.json` に保存されます。設定ディレクトリは `0700`、設定・トークンファイルは `0600` に自動矯正され、アクセストークンの値や断片は状態表示へ出しません。
 
-接続先は既定でサンドボックス（`id.smaregi.dev` / `api.smaregi.dev`）です。本番に接続するときは、MCPサーバーを起動する環境で `SMAREGI_IDP_HOST=https://id.smaregi.jp` と `SMAREGI_API_HOST=https://api.smaregi.jp` を設定します。契約 ID・クライアント ID・接続先・スコープのどれかが変わると、保存済みのトークンは使わずに取り直します。
+接続先は既定でサンドボックス（`id.smaregi.dev` / `api.smaregi.dev`）です。本番に接続するときは、MCPサーバーを起動する環境で `SMAREGI_IDP_HOST=https://id.smaregi.jp` と `SMAREGI_API_HOST=https://api.smaregi.jp` を設定します。以前の版で `smaregi_configure` を実行した場合は、`config.json` にサンドボックスの接続先が書き込まれていて、環境変数より優先されます。環境変数を設定したうえで `smaregi_configure` をもう一度実行してください（今の接続先は `smaregi_auth_status` の IDP Host・API Host で確かめられます）。契約 ID・クライアント ID・接続先・スコープのどれかが変わると、保存済みのトークンは使わずに取り直します。
 
 ### 5. 動作確認
 

@@ -101,6 +101,33 @@ test("configure はホストとスコープを config.json に書かず、環境
   assert.equal(config.apiHost, "https://api.example.test");
 });
 
+test("以前の版が書いた config.json は、configure をもう一度実行すると環境変数のホストが効く", async () => {
+  const dir = path.join(home, ".config", "smaregi-mcp");
+  await fs.mkdir(dir, { recursive: true });
+  // 以前の版の configure は既定のサンドボックスのホストとスコープも書き込んでいた
+  const defaults = await loadConfig();
+  await fs.writeFile(
+    path.join(dir, "config.json"),
+    JSON.stringify({
+      contractId: "contractA",
+      clientId: "clientA",
+      idpHost: defaults.idpHost,
+      apiHost: defaults.apiHost,
+      scopes: defaults.scopes,
+    })
+  );
+  process.env.SMAREGI_IDP_HOST = "https://id.example.test";
+  process.env.SMAREGI_API_HOST = "https://api.example.test";
+
+  // ファイルの値が環境変数より優先されるので、そのままではサンドボックスのまま（README に案内がある）
+  assert.equal((await loadConfig()).idpHost, defaults.idpHost);
+
+  await configure({ contract_id: "contractA", client_id: "clientA" });
+  const config = await loadConfig();
+  assert.equal(config.idpHost, "https://id.example.test");
+  assert.equal(config.apiHost, "https://api.example.test");
+});
+
 test("configure で契約を切り替えると、前の契約のトークンを使わない", async () => {
   await configure({ contract_id: "contractA", client_id: "clientA" });
   const tokenA = await currentToken();
