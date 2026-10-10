@@ -3,3 +3,10 @@ node_modules/
 *.output
 tool-results/
 .test-dist/
+
+# 秘密情報（公開リポジトリなので誤って追加しないようにする）
+.env*
+!.env.example
+tokens.json
+*.pem
+*.key
