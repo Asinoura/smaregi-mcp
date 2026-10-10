@@ -124,6 +124,8 @@ API リファレンスが `references/` に含まれます（全63ファイル�
 | `smaregi_auth_status` | 認証状態確認 |
 | `smaregi_server_info` | サーバー情報 |
 
+POST/PUT/DELETE/PATCH のツールは、MCP サーバーの環境変数に `SMAREGI_ENABLE_MUTATIONS=true` が設定されているときだけ使えます（既定は読み取り専用）。ツール一覧にない場合は、運用者に設定を依頼してください。`path` は `/` から始まるパスだけを書き、クエリは `query` で渡します（`..`・`//`・`?`・`#` を含む `path` は拒否されます）。
+
 ### 基本的な使い方
 
 ```

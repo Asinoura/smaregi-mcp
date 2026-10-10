@@ -34,10 +34,19 @@ async function readJsonBody(req) {
   return JSON.parse(body);
 }
 
+const ALLOWED_HOSTS = new Set([`${HOST}:${PORT}`, `localhost:${PORT}`]);
+const ALLOWED_ORIGINS = new Set([...ALLOWED_HOSTS].map((h) => `http://${h}`));
+
+// DNS リバインディング（外部サイトのドメインを 127.0.0.1 に向け直す攻撃）では Host が外部のドメインになるので断る
+function isAllowedHost(req) {
+  return ALLOWED_HOSTS.has(String(req.headers.host ?? "").toLowerCase());
+}
+
+// ブラウザは POST に必ず Origin を付けるので、POST は許可した Origin のときだけ受け付ける
 function isAllowedOrigin(req) {
   const origin = req.headers.origin;
-  if (!origin) return true;
-  return origin === `http://${HOST}:${PORT}` || origin === `http://localhost:${PORT}`;
+  if (!origin) return req.method === "GET" || req.method === "HEAD";
+  return ALLOWED_ORIGINS.has(origin);
 }
 
 // ---------- JST日付ユーティリティ ----------
@@ -93,8 +102,12 @@ class McpClient {
 
   async start() {
     if (this.proc) return;
+    // テストUIは読み取り専用。起動した環境で変更系を有効にしていても、MCP サーバーには引き継がない
+    const env = { ...process.env };
+    delete env.SMAREGI_ENABLE_MUTATIONS;
     this.proc = spawn("node", [this.serverPath], {
       stdio: ["pipe", "pipe", "pipe"],
+      env,
     });
 
     this.proc.stdout.on("data", (chunk) => {
@@ -351,7 +364,7 @@ const server = createServer(async (req, res) => {
   res.setHeader("X-Content-Type-Options", "nosniff");
   res.setHeader("X-Frame-Options", "DENY");
   res.setHeader("Content-Security-Policy", "default-src 'self'; base-uri 'none'; frame-ancestors 'none'; object-src 'none'");
-  if (!isAllowedOrigin(req)) {
+  if (!isAllowedHost(req) || !isAllowedOrigin(req)) {
     res.writeHead(403, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "許可されていない送信元です" }));
     return;
@@ -382,24 +395,8 @@ const server = createServer(async (req, res) => {
     return;
   }
 
-  // ツール直接呼び出し
-  if (req.method === "POST" && req.url === "/api/call") {
-    try {
-      const { tool, args } = await readJsonBody(req);
-      if (typeof tool !== "string" || !tool.startsWith("smaregi_")) {
-        res.writeHead(400, { "Content-Type": "application/json" });
-        res.end(JSON.stringify({ error: "ツール名が不正です" }));
-        return;
-      }
-      const result = await mcp.callTool(tool, args);
-      res.writeHead(200, { "Content-Type": "application/json" });
-      res.end(JSON.stringify(result));
-    } catch (e) {
-      res.writeHead(500, { "Content-Type": "application/json" });
-      res.end(JSON.stringify({ error: e.message }));
-    }
-    return;
-  }
+  // ツールを名前で直接呼ぶ口（/api/call）は置かない。画面は使っておらず、
+  // 置くと削除や設定変更のツールまでブラウザから呼べてしまう。呼ぶのは下の /api/chat の読み取り系だけ。
 
   // チャット: 自然言語 → 実MCPツール呼び出し → 整形して返答
   if (req.method === "POST" && req.url === "/api/chat") {

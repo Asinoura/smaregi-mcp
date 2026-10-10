@@ -1,7 +1,7 @@
 import { createHash } from "crypto";
 import * as fs from "fs/promises";
 import * as path from "path";
-import { getConfigDir } from "../config/config.js";
+import { getConfigDir, writePrivateFile } from "../config/config.js";
 import { TokenSchema, type Config, type Token } from "../config/schema.js";
 
 /**
@@ -32,13 +32,5 @@ export async function loadToken(): Promise<Token | null> {
 
 /** トークンを保存 */
 export async function saveToken(token: Token): Promise<void> {
-  const dir = getConfigDir();
-  await fs.mkdir(dir, { recursive: true, mode: 0o700 });
-  await fs.chmod(dir, 0o700);
-  const tokenPath = path.join(dir, "tokens.json");
-  await fs.writeFile(tokenPath, JSON.stringify(token, null, 2), {
-    encoding: "utf-8",
-    mode: 0o600,
-  });
-  await fs.chmod(tokenPath, 0o600);
+  await writePrivateFile("tokens.json", JSON.stringify(token, null, 2));
 }

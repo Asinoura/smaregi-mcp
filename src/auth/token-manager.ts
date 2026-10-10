@@ -1,5 +1,7 @@
-import { TOKEN_REFRESH_BUFFER_SECONDS } from "../constants.js";
+import { REQUEST_TIMEOUT_MS, TOKEN_REFRESH_BUFFER_SECONDS } from "../constants.js";
 import type { Config, Token } from "../config/schema.js";
+import { encodeContractId } from "../api/url.js";
+import { isTimeoutError, sanitizeErrorBody } from "../api/errors.js";
 import { loadToken, saveToken, tokenCacheKey } from "./token-store.js";
 
 /** トークンが有効かチェック */
@@ -17,20 +19,29 @@ async function fetchNewToken(config: Config, cacheKey: string): Promise<Token> {
     );
   }
 
-  const url = `${config.idpHost}/app/${config.contractId}/token`;
+  const url = `${config.idpHost}/app/${encodeContractId(config.contractId)}/token`;
   const credentials = Buffer.from(`${config.clientId}:${config.clientSecret}`).toString("base64");
 
-  const response = await fetch(url, {
-    method: "POST",
-    headers: {
-      Authorization: `Basic ${credentials}`,
-      "Content-Type": "application/x-www-form-urlencoded",
-    },
-    body: `grant_type=client_credentials&scope=${encodeURIComponent(config.scopes.join(" "))}`,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url, {
+      method: "POST",
+      headers: {
+        Authorization: `Basic ${credentials}`,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: `grant_type=client_credentials&scope=${encodeURIComponent(config.scopes.join(" "))}`,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (e) {
+    if (isTimeoutError(e)) {
+      throw new Error(`トークン取得が ${REQUEST_TIMEOUT_MS / 1000} 秒以内に終わりませんでした`);
+    }
+    throw e;
+  }
 
   if (!response.ok) {
-    const body = await response.text();
+    const body = sanitizeErrorBody(await response.text(), [config.clientSecret, credentials]);
     throw new Error(`トークン取得に失敗しました (${response.status}): ${body}`);
   }
 

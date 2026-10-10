@@ -1,5 +1,8 @@
 import type { Config } from "../config/schema.js";
 import { getAccessToken } from "../auth/token-manager.js";
+import { REQUEST_TIMEOUT_MS } from "../constants.js";
+import { isTimeoutError, sanitizeErrorBody } from "./errors.js";
+import { buildApiUrl } from "./url.js";
 
 /** スマレジAPIリクエスト */
 export async function apiRequest(
@@ -9,8 +12,9 @@ export async function apiRequest(
   query?: Record<string, string>,
   body?: unknown
 ): Promise<unknown> {
+  // トークンを取りに行く前に確かめる
+  const url = buildApiUrl(config, path);
   const accessToken = await getAccessToken(config);
-  const url = new URL(`${config.apiHost}/${config.contractId}/pos${path}`);
 
   if (query) {
     for (const [key, value] of Object.entries(query)) {
@@ -23,14 +27,25 @@ export async function apiRequest(
     "Content-Type": "application/json",
   };
 
-  const response = await fetch(url.toString(), {
-    method,
-    headers,
-    body: body ? JSON.stringify(body) : undefined,
-  });
+  let response: Response;
+  try {
+    response = await fetch(url.toString(), {
+      method,
+      headers,
+      body: body ? JSON.stringify(body) : undefined,
+      signal: AbortSignal.timeout(REQUEST_TIMEOUT_MS),
+    });
+  } catch (e) {
+    if (isTimeoutError(e)) {
+      throw new Error(
+        `スマレジAPIが ${REQUEST_TIMEOUT_MS / 1000} 秒以内に応答しませんでした (${method} ${path})`
+      );
+    }
+    throw e;
+  }
 
   if (!response.ok) {
-    const errorBody = await response.text();
+    const errorBody = sanitizeErrorBody(await response.text(), [accessToken]);
     throw new Error(
       `スマレジAPI エラー (${method} ${path} → ${response.status}): ${errorBody}`
     );
