@@ -14,7 +14,7 @@ smaregi-mcp/
 └── Skills (skills/)             ... APIの使い方を知る「知識」
 ```
 
-- **MCP サーバー**: 9つの汎用ツール（GET/POST/PUT/DELETE/PATCH + 管理系）を提供
+- **MCP サーバー**: 9つの汎用ツール（GET/POST/PUT/DELETE/PATCH + 管理系）を提供。変更系（POST/PUT/DELETE/PATCH）は既定で無効で、明示的に有効にしたときだけ使えます（[セキュリティ](#セキュリティ)）
 - **Skills**: API リファレンス 63 ファイル + 操作ガイド 12 ファイル
 
 ## 対応 API
@@ -100,20 +100,27 @@ npm run build
 | ツール | 説明 |
 |-------|------|
 | `smaregi_api_get` | GET リクエスト（データ取得） |
-| `smaregi_api_post` | POST リクエスト（データ作成） |
-| `smaregi_api_put` | PUT リクエスト（データ更新） |
-| `smaregi_api_delete` | DELETE リクエスト（データ削除） |
-| `smaregi_api_patch` | PATCH リクエスト（部分更新） |
+| `smaregi_api_post` | POST リクエスト（データ作成）※ |
+| `smaregi_api_put` | PUT リクエスト（データ更新）※ |
+| `smaregi_api_delete` | DELETE リクエスト（データ削除）※ |
+| `smaregi_api_patch` | PATCH リクエスト（部分更新）※ |
 | `smaregi_api_list_paths` | 利用可能なエンドポイント一覧 |
 | `smaregi_configure` | 契約ID・クライアントID設定（シークレットは環境変数のみ） |
 | `smaregi_auth_status` | 認証状態確認 |
-| `smaregi_server_info` | サーバー情報表示 |
+| `smaregi_server_info` | サーバー情報表示（変更系ツールが有効かどうかも表示） |
+
+※ `SMAREGI_ENABLE_MUTATIONS=true` のときだけ登録されます。設定していなければ、ツール一覧にも出ません。
 
 ## セキュリティ
 
-- GETは既定で利用できますが、POST/PUT/PATCH/DELETEは既定で無効です。
-- 変更系APIを使う場合だけ、MCPサーバーの環境変数へ `SMAREGI_ENABLE_MUTATIONS=true` を設定してください。
+- 既定では読み取り専用です。GET（`smaregi_api_get`）は使えますが、POST/PUT/PATCH/DELETE のツールは登録されず、Claude からは見えません。
+- トークンを取るときに要求するスコープも、既定では読み取り（`:read`）だけです。以前の版で `config.json` に書き込みスコープ（`:write`）が書かれていても、変更系を有効にしていなければ要求しません。
+- 変更系APIを使う場合だけ、MCPサーバーの環境変数へ `SMAREGI_ENABLE_MUTATIONS=true` を設定してください（`1` などほかの値では有効になりません）。このとき変更系ツールが登録され、書き込みスコープ（`pos.products:write` など）も要求します。
 - 変更系ツールはさらに `confirm: true` が必須です。実行前に対象・件数・変更内容を確認してください。
+- 商品名や会員メモなど、スマレジから読んだデータの中に「削除して」のような指示が紛れ込んでいても、Claude が従ってしまうことがあります。変更系は必要なときだけ有効にし、終わったら外してください。
+- API パスは `/products` のような `/` から始まるパスだけを受け付けます。`..`・`//`・`?`・`#` などで `/{契約ID}/pos` の外を指すパスは拒否します。クエリは `query` で渡してください。
+- スマレジのエラー応答は、トークンらしい値を伏せ、500 文字までに切り詰めてから表示します。スマレジへの通信は 30 秒で打ち切ります。
+- 設定・トークンファイル（`~/.config/smaregi-mcp/` の下）がシンボリックリンクのときは、リンク先を上書きしないよう書き込みを拒否します。
 - 必要最小限のスマレジScopeだけを付与し、本番用と検証用の認証情報を分けてください。
 - 認証情報やトークン値は会話・ログ・Issueへ貼り付けないでください。
 
@@ -130,6 +137,14 @@ npm run build
   }
 }
 ```
+
+### 以前の版から更新する場合（互換性に影響する変更）
+
+- 変更系ツール（`smaregi_api_post` / `put` / `delete` / `patch`）は、`SMAREGI_ENABLE_MUTATIONS=true` を設定していないと登録されなくなりました。以前は登録だけされて、呼ぶとエラーになっていました。
+- 既定のスコープが読み取りだけになりました。`SMAREGI_ENABLE_MUTATIONS=true` を設定していない場合、`config.json` に書き込みスコープがあっても要求しません。スコープが変わるので、更新後の最初の呼び出しでトークンを取り直します。
+- `..` や `//`、`?`・`#` を含む API パスは拒否するようになりました。クエリを `path` に書いていた場合は `query` に移してください。
+- 契約IDは URL に入れるときにエンコードするようになりました。英数字と `_`・`-` だけの通常の契約IDには影響しません。
+- テストUI（`test-ui/`）から、ツールを名前で直接呼ぶ `/api/call` をなくしました。画面からは使っていません。テストUIは読み取り専用で、起動した環境で `SMAREGI_ENABLE_MUTATIONS=true` を設定していても MCP サーバーには引き継ぎません。
 
 ## Skills 構成
 
@@ -161,13 +176,14 @@ skills/smaregi-api-skill/
 ## スマレジアプリの作成
 
 1. [developers.smaregi.dev](https://developers.smaregi.dev) でアプリを新規登録（種別: Web アプリ）
-2. 必要なスコープを有効化:
-   - `pos.products:read` / `pos.products:write`
-   - `pos.customers:read` / `pos.customers:write`
+2. 必要なスコープを有効化（読み取りだけで使うなら `:read` だけで足ります）:
+   - `pos.products:read`
+   - `pos.customers:read`
    - `pos.stores:read`
-   - `pos.transactions:read` / `pos.transactions:write`
+   - `pos.transactions:read`
    - `pos.staffs:read`
-   - `pos.stock:read` / `pos.stock:write`
+   - `pos.stock:read`
+   - 変更系（`SMAREGI_ENABLE_MUTATIONS=true`）も使う場合だけ: `pos.products:write` / `pos.customers:write` / `pos.transactions:write` / `pos.stock:write`
 3. クライアント ID / シークレットを控える
 
 ## トラブルシューティング
@@ -185,6 +201,7 @@ skills/smaregi-api-skill/
 
 ### スコープ不足 (403)
 
+- POST/PUT/PATCH/DELETE で 403 になる場合は、`SMAREGI_ENABLE_MUTATIONS=true` を設定しているか（`smaregi_server_info` で確認できます）と、アプリに書き込みスコープがあるかを確認
 - Developer Platform でアプリのスコープ設定を確認
 - スコープ変更後はトークンキャッシュを削除: `rm ~/.config/smaregi-mcp/tokens.json`
 

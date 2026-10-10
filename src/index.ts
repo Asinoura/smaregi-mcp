@@ -9,15 +9,7 @@ if (command === "setup-skills") {
   const { McpServer } = await import("@modelcontextprotocol/sdk/server/mcp.js");
   const { StdioServerTransport } = await import("@modelcontextprotocol/sdk/server/stdio.js");
   const { VERSION } = await import("./constants.js");
-  const { register: registerConfigure } = await import("./tools/configure.js");
-  const { register: registerAuthStatus } = await import("./tools/auth-status.js");
-  const { register: registerServerInfo } = await import("./tools/server-info.js");
-  const { register: registerApiGet } = await import("./tools/api-get.js");
-  const { register: registerApiPost } = await import("./tools/api-post.js");
-  const { register: registerApiPut } = await import("./tools/api-put.js");
-  const { register: registerApiDelete } = await import("./tools/api-delete.js");
-  const { register: registerApiPatch } = await import("./tools/api-patch.js");
-  const { register: registerApiListPaths } = await import("./tools/api-list-paths.js");
+  const { registerTools } = await import("./tools/register-all.js");
 
   const server = new McpServer({
     name: "smaregi-mcp",
@@ -25,15 +17,7 @@ if (command === "setup-skills") {
     description: "スマレジPOS APIと連携するMCPサーバー",
   });
 
-  registerConfigure(server);
-  registerAuthStatus(server);
-  registerServerInfo(server);
-  registerApiGet(server);
-  registerApiPost(server);
-  registerApiPut(server);
-  registerApiDelete(server);
-  registerApiPatch(server);
-  registerApiListPaths(server);
+  registerTools(server);
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
