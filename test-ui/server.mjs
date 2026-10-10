@@ -10,9 +10,16 @@ import { fileURLToPath } from "url";
 import { spawn } from "child_process";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const PORT = 3456;
+const PORT = Number(process.env.SMAREGI_TEST_UI_PORT) || 3456;
 const HOST = "127.0.0.1";
 const MAX_BODY_BYTES = 64 * 1024;
+// CSP（default-src 'self'）ではインラインのスクリプトとスタイルが動かないため、画面の部品は別ファイルで配る
+const STATIC_FILES = new Map([
+  ["/", { file: "index.html", type: "text/html; charset=utf-8" }],
+  ["/index.html", { file: "index.html", type: "text/html; charset=utf-8" }],
+  ["/app.js", { file: "app.js", type: "text/javascript; charset=utf-8" }],
+  ["/style.css", { file: "style.css", type: "text/css; charset=utf-8" }],
+]);
 
 async function readJsonBody(req) {
   let body = "";
@@ -352,12 +359,13 @@ const server = createServer(async (req, res) => {
   if (req.method === "OPTIONS") { res.writeHead(204); res.end(); return; }
 
   // Static
-  if (req.method === "GET" && (req.url === "/" || req.url === "/index.html")) {
+  const staticFile = req.method === "GET" ? STATIC_FILES.get(req.url) : undefined;
+  if (staticFile) {
     try {
-      const html = readFileSync(join(__dirname, "index.html"), "utf-8");
-      res.writeHead(200, { "Content-Type": "text/html; charset=utf-8" });
-      res.end(html);
-    } catch { res.writeHead(500); res.end("index.html not found"); }
+      const body = readFileSync(join(__dirname, staticFile.file), "utf-8");
+      res.writeHead(200, { "Content-Type": staticFile.type });
+      res.end(body);
+    } catch { res.writeHead(500); res.end(`${staticFile.file} not found`); }
     return;
   }
 

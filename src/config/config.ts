@@ -2,7 +2,7 @@ import * as fs from "fs/promises";
 import * as path from "path";
 import * as os from "os";
 import { CONFIG_DIR_NAME } from "../constants.js";
-import { ConfigSchema, type Config } from "./schema.js";
+import { ConfigSchema, type Config, type ConfigInput } from "./schema.js";
 
 /** 設定ディレクトリのパスを取得 */
 export function getConfigDir(): string {
@@ -35,7 +35,7 @@ export async function loadConfig(): Promise<Config> {
 }
 
 /** 設定ファイルを保存 */
-export async function saveConfig(config: Config): Promise<void> {
+export async function saveConfig(config: ConfigInput): Promise<void> {
   const dir = getConfigDir();
   await fs.mkdir(dir, { recursive: true, mode: 0o700 });
   await fs.chmod(dir, 0o700);

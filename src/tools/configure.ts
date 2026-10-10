@@ -1,7 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { z } from "zod";
 import { saveConfig } from "../config/config.js";
-import { DEFAULT_IDP_HOST, DEFAULT_API_HOST, DEFAULT_SCOPES } from "../constants.js";
 
 export function register(server: McpServer): void {
   server.tool(
@@ -12,12 +11,11 @@ export function register(server: McpServer): void {
       client_id: z.string().describe("クライアントID"),
     },
     async ({ contract_id, client_id }) => {
+      // ホストとスコープは書かない。書くと SMAREGI_IDP_HOST / SMAREGI_API_HOST より
+      // ファイルの値（既定のサンドボックス）が優先され、本番の設定が効かなくなる。
       await saveConfig({
         contractId: contract_id,
         clientId: client_id,
-        idpHost: DEFAULT_IDP_HOST,
-        apiHost: DEFAULT_API_HOST,
-        scopes: DEFAULT_SCOPES,
       });
 
       return {

@@ -1,6 +1,6 @@
 import { TOKEN_REFRESH_BUFFER_SECONDS } from "../constants.js";
 import type { Config, Token } from "../config/schema.js";
-import { loadToken, saveToken } from "./token-store.js";
+import { loadToken, saveToken, tokenCacheKey } from "./token-store.js";
 
 /** トークンが有効かチェック */
 function isTokenValid(token: Token): boolean {
@@ -10,7 +10,7 @@ function isTokenValid(token: Token): boolean {
 }
 
 /** 新規トークンを取得 */
-async function fetchNewToken(config: Config): Promise<Token> {
+async function fetchNewToken(config: Config, cacheKey: string): Promise<Token> {
   if (!config.clientId || !config.clientSecret) {
     throw new Error(
       "clientId または clientSecret が未設定です。clientId は smaregi_configure、clientSecret は SMAREGI_CLIENT_SECRET 環境変数で設定してください。"
@@ -40,18 +40,20 @@ async function fetchNewToken(config: Config): Promise<Token> {
     expires_in: data.expires_in,
     token_type: data.token_type,
     obtained_at: Date.now(),
+    cache_key: cacheKey,
   };
 
   await saveToken(token);
   return token;
 }
 
-/** アクセストークンを取得（キャッシュ有効なら再利用） */
+/** アクセストークンを取得（同じ設定で取得したキャッシュが有効なら再利用） */
 export async function getAccessToken(config: Config): Promise<string> {
+  const cacheKey = tokenCacheKey(config);
   const cached = await loadToken();
-  if (cached && isTokenValid(cached)) {
+  if (cached && cached.cache_key === cacheKey && isTokenValid(cached)) {
     return cached.access_token;
   }
-  const token = await fetchNewToken(config);
+  const token = await fetchNewToken(config, cacheKey);
   return token.access_token;
 }

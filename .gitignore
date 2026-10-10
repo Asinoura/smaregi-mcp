@@ -2,3 +2,4 @@ node_modules/
 .claude/
 *.output
 tool-results/
+.test-dist/
